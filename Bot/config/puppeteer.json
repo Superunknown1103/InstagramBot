@@ -1,0 +1,32 @@
+{
+    "base_url": "https://www.instagram.com/accounts/login/?source=auth_switcher",
+    "username": "jandrolinan@gmail.com",
+    "password": "setupsnotTHEsetups918273645",
+    "hashTags": [
+        ""
+    ],
+    "settings": {
+        "run_every_x_hours": 3,
+        "like_ratio": 0.75,
+        "unfollow_after_days": 2,
+        "headless": false
+    },
+    "selectors": {
+            "username": {
+                "value": "input[name='username']",
+                "type": "css"
+            },
+            "password": {
+                "value": "input[name='password'" ,
+                "type": "css"
+            },
+            "login": {
+                "value": "//div[contains(text(), 'Log In')]",
+                "type": "xpath"
+            },
+            "notnow": {
+                "value": "//button[contains(text(), 'Not Now')]",
+                "type": "xpath"
+            }
+    }
+}
