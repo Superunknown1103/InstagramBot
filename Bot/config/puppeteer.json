@@ -1,10 +1,8 @@
 {
     "base_url": "https://www.instagram.com/accounts/login/?source=auth_switcher",
-    "username": "jandrolinan@gmail.com",
-    "password": "setupsnotTHEsetups918273645",
-    "hashTags": [
-        ""
-    ],
+    "username": "bruceyb31",
+    "password": "Jaguar5000!!",
+    "scrapeLimit": 100,
     "settings": {
         "run_every_x_hours": 3,
         "like_ratio": 0.75,
@@ -26,6 +24,18 @@
             },
             "notnow": {
                 "value": "//button[contains(text(), 'Not Now')]",
+                "type": "xpath"
+            },
+            "follow": {
+                "value": "//button[contains(text(), 'Follow')]",
+                "type": "xpath"
+            },
+            "followers": {
+                "value": "//a[contains(@href,'/followers/')]",
+                "type":"xpath"
+            },
+            "followerInstance": {
+                "value": "//span//a[@tabindex and @title]",
                 "type": "xpath"
             }
     }

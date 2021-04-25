@@ -35,6 +35,7 @@ let inHistory = async username => followHistory(username).once('value').then(dat
 module.exports = {
     addFollowing,
     getFollowings,
+    followHistory,
     unFollow,
     inHistory
 };
