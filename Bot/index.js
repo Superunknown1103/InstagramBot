@@ -67,25 +67,47 @@ class InstagramBot {
     async scrapePageFollowers(page, handle) {
         await help.log('DEBUG', `Visiting ${handle}'s instagram page...`)
         await page.goto(`https://www.instagram.com/${handle}/`, { timeout: 60000 });
-        await help.click(page, this.config.selectors.follow);
+        try {
+            await help.click(page, this.config.selectors.follow);
+        } catch {
+            await help.click(page, this.config.selectors.unfollow);
+            await help.wait(page, 2500);
+        }
         await help.wait(page, 2500);
         await help.log('DEBUG', `Scraping follower list...`)
         await help.click(page, this.config.selectors.followers);
         await help.wait(page, 3500);
         const scrapeLimit = this.config.scrapeLimit;
-        let followers = await page.$x(this.config.selectors.followerInstance.value);
-        console.log(followers.length);
-        followers.forEach(async follower => {
-            let followerHandle = await page.evaluate(x => x.innerText, follower);
-            // check if handle contains undesirable characters that won't work in our database.
-            if (help.undesirableChar(followerHandle)) {
-                console.log(`SKIP: ${followerHandle}. Undesirable characters found in handle.`)
+        let currentScraped = 0;
+        // keep scraping until we hit our specified limit - using a recursive function to reload the page and grab more followers
+        const scrapeFollowerModal = async () => {
+            let followers = await page.$x(this.config.selectors.followerInstance.value);
+            await followers.forEach(async follower => {
+                let followerHandle = await page.evaluate(x => x.innerText, follower);
+                if (await help.undesirableChar(followerHandle)) {
+                    console.log(`SKIP: ${followerHandle}. Undesirable characters found in handle.`)
+                } else {
+                    await dbActions.addFollowing(followerHandle);
+                    currentScraped++;
+                    console.log(`${followerHandle}'s handle scraped.`);
+                }
+            });
+            if (currentScraped < scrapeLimit) {
+                await help.wait(page, 3500);
+                await help.log('DEBUG', `Refreshing...`)
+
+                await page.goBack();
+                await page.goForward();
+                await help.click(page, this.config.selectors.followers);
+                scrapeFollowerModal()
             } else {
-                await dbActions.addFollowing(followerHandle);
-                console.log(`${followerHandle}'s handle scraped.`);
+                await help.log('DEBUG', `Scrape limit of ${scrapeLimit} has been hit.`)
             }
-        });
-        console.log(await dbActions.followHistory());
+        }
+        scrapeFollowerModal();
+
+        // 
+        // console.log(dbActions.followHistory());
     }
 
 

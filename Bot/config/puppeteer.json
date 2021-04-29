@@ -2,7 +2,7 @@
     "base_url": "https://www.instagram.com/accounts/login/?source=auth_switcher",
     "username": "bruceyb31",
     "password": "Jaguar5000!!",
-    "scrapeLimit": 100,
+    "scrapeLimit": 20,
     "settings": {
         "run_every_x_hours": 3,
         "like_ratio": 0.75,
@@ -29,6 +29,10 @@
             "follow": {
                 "value": "//button[contains(text(), 'Follow')]",
                 "type": "xpath"
+            },
+            "unfollow": {
+                "value": "svg[aria-label='Down Chevron Icon'][fill='#262626']",
+                "type": "css"
             },
             "followers": {
                 "value": "//a[contains(@href,'/followers/')]",

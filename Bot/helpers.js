@@ -31,8 +31,8 @@ const fillField = async (page, selector, text) => {
     await page.type(selector.value, text);
 }
 
-const undesirableChar = (handle) => {
-    return handle.includes('.') || handle.includes('#') || handle.includes('$') || handle.includes('[') || handle.includes(']');
+const undesirableChar = async (handle) => {
+    return await handle.includes('.') || handle.includes('#') || handle.includes('$') || handle.includes('[') || handle.includes(']');
 }
 
 module.exports = {
