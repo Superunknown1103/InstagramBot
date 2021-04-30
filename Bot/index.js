@@ -13,6 +13,7 @@ class InstagramBot {
         await this.initPuppeteer();
         await this.visitInstagram(this.page);
         await this.scrapePageFollowers(this.page, this.instagramHandle);
+        await this.followAndMessage(this.page)
     }
 
     /* Start browser, create new page, set window dimensions */
@@ -63,7 +64,7 @@ class InstagramBot {
         }
     }
 
-    /* Find specified instagramHandle page, scrape follower list */
+    /* Find specified instagramHandle page, scrape follower list, follow them */
     async scrapePageFollowers(page, handle) {
         await help.log('DEBUG', `Visiting ${handle}'s instagram page...`)
         await page.goto(`https://www.instagram.com/${handle}/`, { timeout: 60000 });
@@ -101,13 +102,80 @@ class InstagramBot {
                 await help.click(page, this.config.selectors.followers);
                 scrapeFollowerModal()
             } else {
-                await help.log('DEBUG', `Scrape limit of ${scrapeLimit} has been hit.`)
+                await help.log('DEBUG', `Scrape limit of ${scrapeLimit} has been hit.`);
+                // await this.followAndMessage(page);
             }
         }
         scrapeFollowerModal();
+        return 'done';
+    }
 
-        // 
-        // console.log(dbActions.followHistory());
+    async followAndMessage(page) {
+        let scrapedUsers = await dbActions.getFollowings();
+        let all_users = Object.keys(scrapedUsers);
+        help.log('DEBUG', 'Beginning followAndMessage...')
+
+        for (var i = 0; i < all_users.length; i++) {
+            try { 
+            // go to users page
+            await page.goto(`https://www.instagram.com/${all_users[i]}/`, { timeout: 0, waitUntil: 'networkidle0' });
+            // click message, wait to be directed to chat page
+            await help.click(page, this.config.selectors.follow);
+            await help.wait(page, 3500);
+            await help.click(page, this.config.selectors.messageBtn);
+            await help.wait(page, 3500);
+            await page.waitForNavigation({waitUntil: 'networkidle0'});
+            } catch {
+                help.log('DEBUG', `Unable to message ${all_users[i]}`);
+            }
+
+        };
+    }
+
+    async unFollowUsers(page) {
+        let date_range = new Date().getTime() - (this.config.settings.unfollow_after_days * 86400000);
+        await help.log('DEBUG', `Beginning unfollow process...`)
+        // get the list of users we are currently following
+        let following = await dbActions.getFollowings();
+        let users_to_unfollow = [];
+        if (following) {
+            const all_users = Object.keys(following);
+            // filter our current following to get users we've been following since day specified in config
+            users_to_unfollow = all_users.filter(user => following[user].added < date_range);
+            await help.log('DEBUG', `Attempting to unfollow ${users_to_unfollow.length} users...`)
+        }
+
+        if (users_to_unfollow.length) {
+            for (let n = 0; n < users_to_unfollow.length; n++) {
+                let user = users_to_unfollow[n];
+                await help.log('DEBUG', `Unfollowing ${user} ...`)
+                await page.goto(`https://www.instagram.com/${user}/`, { timeout: 0, waitUntil: 'networkidle0' });
+                await page.waitFor(1500 + Math.floor(Math.random() * 500));
+
+                // Checking to see if follow button is on the page
+                let followStatus = await help.isVisible(page, this.config.selectors.follow.value) ? 'Not Following' : 'Following';
+
+                if (followStatus === 'Following') {
+                    console.log('<<< UNFOLLOW USER >>>' + user);
+                    //click on unfollow button
+                    await help.click(page, this.config.selectors.unfollow);
+                    //wait for a sec
+                    await page.waitFor(1000);
+                    //confirm unfollow user
+                    await help.click(page, this.config.selectors.confirmUnfollow);
+                    //wait for random amount of time
+                    await page.waitFor(20000 + Math.floor(Math.random() * 5000));
+                    //save user to following history
+                    await dbActions.unFollow(user);
+                    await help.log('DEBUG', `Unfollowed ${user} successfully.`)
+                } else {
+                    //save user to our following history
+                    dbActions.unFollow(user);
+
+                }
+            }
+
+        }
     }
 
 

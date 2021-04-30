@@ -12,6 +12,15 @@ const click = async (page, selector) => {
     }
 }
 
+async function isVisible(page, xPathSelector){
+    try {
+      await page.waitForXPath(xPathSelector, { visible: true, timeout: 1000 });
+      return true;
+    } catch {
+      return false;
+    }
+}
+
 const log = async (type, msg) => {
     if (type = "DEBUG") {
         console.log("\x1b[34m", msg, "\x1b[0m");
@@ -40,5 +49,6 @@ module.exports = {
     undesirableChar,
     wait,
     log,
-    fillField
+    fillField,
+    isVisible
 }
