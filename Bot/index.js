@@ -13,7 +13,8 @@ class InstagramBot {
         await this.initPuppeteer();
         await this.visitInstagram(this.page);
         await this.scrapePageFollowers(this.page, this.instagramHandle);
-        await this.followAndMessage(this.page)
+        await this.followAndMessage(this.page);
+        await this.unfollowUsers(this.page);
     }
 
     /* Start browser, create new page, set window dimensions */
@@ -31,6 +32,14 @@ class InstagramBot {
     input login details, close turn on notification modal after successful login */
     async visitInstagram(page) {
         await page.goto(this.config.base_url, { timeout: 60000 });
+
+        /* Deal with cookie modal */
+        await help.log('DEBUG', 'Cookie modal');
+        try {
+            await help.click(page, this.config.selectors.acceptAllCookies)
+        } catch {
+            await help.log('DEBUG', 'Appears there is no cookie modal.')
+        }
         await help.wait(page, 2500);
         /* Username Field */
         await help.log('DEBUG', 'Entering username...');
@@ -80,6 +89,7 @@ class InstagramBot {
         await help.wait(page, 3500);
         const scrapeLimit = this.config.scrapeLimit;
         let currentScraped = 0;
+        const scrapeLimitHit = false;
         // keep scraping until we hit our specified limit - using a recursive function to reload the page and grab more followers
         const scrapeFollowerModal = async () => {
             let followers = await page.$x(this.config.selectors.followerInstance.value);
@@ -100,38 +110,60 @@ class InstagramBot {
                 await page.goBack();
                 await page.goForward();
                 await help.click(page, this.config.selectors.followers);
-                scrapeFollowerModal()
+                scrapeFollowerModal();
             } else {
                 await help.log('DEBUG', `Scrape limit of ${scrapeLimit} has been hit.`);
-                // await this.followAndMessage(page);
+                scrapeLimitHit = true;
             }
+        };
+        if (!scrapeLimitHit) {
+            await scrapeFollowerModal();
         }
-        scrapeFollowerModal();
-        return 'done';
     }
 
+    /* Message scraped users */
     async followAndMessage(page) {
         let scrapedUsers = await dbActions.getFollowings();
         let all_users = Object.keys(scrapedUsers);
         help.log('DEBUG', 'Beginning followAndMessage...')
+        let messaged = await dbActions.getMessaged();
+        let all_messaged_users = Object.keys(messaged);
+        let scrapeLimit = this.config.settings.scrapeLimit;
 
         for (var i = 0; i < all_users.length; i++) {
-            try { 
-            // go to users page
-            await page.goto(`https://www.instagram.com/${all_users[i]}/`, { timeout: 0, waitUntil: 'networkidle0' });
-            // click message, wait to be directed to chat page
-            await help.click(page, this.config.selectors.follow);
-            await help.wait(page, 3500);
-            await help.click(page, this.config.selectors.messageBtn);
-            await help.wait(page, 3500);
-            await page.waitForNavigation({waitUntil: 'networkidle0'});
-            } catch {
-                help.log('DEBUG', `Unable to message ${all_users[i]}`);
+            if (all_messaged_users.includes(all_users[i])) {
+                help.log('DEBUG', `We have already messaged ${all_users[i]}`);
+            } else {
+                if (i < scrapeLimit) {
+                    // wait anywhere between 0-2 minutes
+                    await help.waitMinutes(page);
+                    try {
+                        // go to users page
+                        await page.goto(`https://www.instagram.com/${all_users[i]}/`, { timeout: 0, waitUntil: 'networkidle0' });
+                        // click message, wait to be directed to chat page
+                        await help.click(page, this.config.selectors.follow);
+                        await help.wait(page, 3500);
+                        await help.click(page, this.config.selectors.messageBtn);
+                        await help.wait(page, 6000);
+                        // write message
+                        await help.log(`Writing message to ${all_users[i]}`)
+                        await help.fillField(page, this.config.selectors.messageBox, this.config.settings.messageText);
+                        await help.wait(page, 4000);
+                        await help.click(page, this.config.selectors.sendMsg)
+                        await help.wait(page, 6000);
+                        await dbActions.addMessaged(`${all_users[i]}`);
+                    } catch {
+                        await help.log('DEBUG', `Unable to message ${all_users[i]}`);
+                    }
+                } else {
+                    i = all_users.length;
+                    await help.log('DEBUG', `Scrape limit hit! Done messaging users.`)
+                }
             }
-
         };
     }
 
+    /* Unfollow users that we have followed after a certain time period */
     async unFollowUsers(page) {
         let date_range = new Date().getTime() - (this.config.settings.unfollow_after_days * 86400000);
         await help.log('DEBUG', `Beginning unfollow process...`)
@@ -171,14 +203,11 @@ class InstagramBot {
                 } else {
                     //save user to our following history
                     dbActions.unFollow(user);
-
                 }
             }
 
         }
     }
-
-
 }
 
 module.exports = InstagramBot;

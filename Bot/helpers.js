@@ -33,6 +33,15 @@ const log = async (type, msg) => {
     }
 }
 
+const waitMinutes = async (page) => {
+    const randomTime = await (async () => { 
+        const intervals = [{seconds: 5, milliseconds: 5000}, {seconds: 10, milliseconds: 10000}, {seconds: 20, milliseconds: 20000}, {seconds: 30, milliseconds: 30000}, {seconds: 60, milliseconds: 60000}, {seconds: 90, milliseconds: 90000}, {seconds: 120, milliseconds: 120000}]
+        return intervals[~~(intervals.length * Math.random())];
+    })();
+    await log('DEBUG', `Waiting between 5 and 120 seconds before proceeding to next action...`)
+    await page.waitFor(randomTime.milliseconds)
+}
+
 const fillField = async (page, selector, text) => {
     let input = selector.type = "css" ? await page.$(selector.value) : await page.$x(selector.value);
     await input.click({clickCount: 3});
@@ -50,5 +59,6 @@ module.exports = {
     wait,
     log,
     fillField,
-    isVisible
+    isVisible,
+    waitMinutes
 }

@@ -8,7 +8,7 @@
         "like_ratio": 0.75,
         "unfollow_after_days": 4,
         "headless": false,
-        "messageText": "Hello! How are you?"
+        "messageText": "Hello! Its nice to meet you. I hope we can be friends. :)"
     },
     "selectors": {
             "username": {
@@ -52,8 +52,16 @@
                 "type": "xpath"
             },
             "messageBox": {
-                "value": "input[type='file']", 
+                "value": "textarea[placeholder='Message...']", 
                 "type": "css"
+            },
+            "acceptAllCookies": {
+                "value": "//button[contains(text(), 'Accept')]",
+                "type": "xpath"
+            },
+            "sendMsg": {
+                "value": "//button[contains(text(), 'Send')]",
+                "type": "xpath"
             }
     }
 }

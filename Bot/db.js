@@ -13,6 +13,9 @@ let database = firebase.database();
 // following objects hold the list of users we have followed
 const following = (param = '') => database.ref(`following/${param}`);
 
+// messaged objects hold the list of users we have messaged so we dont message them again
+const messaged = (param = '') => database.ref(`messaged/${param}`);
+
 // follow history hold the list of users we have unfollowed so we don't follow
 // them again.
 const followHistory = (param = '') => database.ref(`follow_history/${param}`);
@@ -22,8 +25,16 @@ const addFollowing = async username => {
     return following(username).set({username, added});
 }
 
+const addMessaged = async username => {
+    const added = new Date().getTime();
+    return messaged(username).set({username, added});
+}
+
 // returns the list of all the users we're following
 const getFollowings = async () => following().once('value').then(data => data.val());
+
+// returns the list of all the users we've messaged
+const getMessaged = async () => following().once('value').then(data => data.val());
 
 // takes the username to unfollow as an argument then removes the record
 // from the list of people we are following and add it to the follow_history
@@ -34,6 +45,8 @@ let inHistory = async username => followHistory(username).once('value').then(dat
 
 module.exports = {
     addFollowing,
+    addMessaged,
+    getMessaged,
     getFollowings,
     followHistory,
     unFollow,
